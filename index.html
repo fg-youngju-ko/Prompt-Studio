@@ -43,6 +43,11 @@
   .brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
   .brand h1 { font-size: 18px; font-weight: 800; margin: 0; }
   .brand span { font-size: 12px; color: var(--muted); }
+  .refresh-btn {
+    margin-left: auto; padding: 5px 10px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--field-bg); color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .refresh-btn:hover { border-color: var(--accent); color: var(--text); }
 
   nav { display: flex; gap: 6px; flex-wrap: wrap; }
   .nav-btn {
@@ -163,6 +168,7 @@
     <div class="brand">
       <h1>Prompt Studio</h1>
       <span>Claude Code용 프롬프트 빌더</span>
+      <button id="refreshLatestBtn" class="refresh-btn" title="화면이 예전 버전처럼 보이면 눌러주세요">최신 버전 불러오기</button>
     </div>
     <nav>
       <button class="nav-btn active" data-tab="idea">아이디어로 시작하기</button>
@@ -288,6 +294,15 @@
 <script>
 (function () {
   'use strict';
+
+  /* ---------- 최신 버전 불러오기 (캐시 우회) ---------- */
+  // 브라우저 캐시 자체를 JS로 지울 수는 없지만, URL에 매번 다른 값을 붙여
+  // 다시 불러오면 브라우저가 이 주소를 "새 페이지"로 취급해 캐시를 건너뛰고
+  // 서버(GitHub Pages)에서 최신 내용을 다시 받아온다.
+  document.getElementById('refreshLatestBtn').addEventListener('click', function () {
+    var base = window.location.href.split('?')[0].split('#')[0];
+    window.location.href = base + '?t=' + Date.now();
+  });
 
   /* ---------- 탭 전환 ---------- */
   var navButtons = Array.prototype.slice.call(document.querySelectorAll('.nav-btn'));
