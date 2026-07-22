@@ -24,14 +24,6 @@
       {
         "command": "promptStudio.buildFeaturePrompt",
         "title": "Prompt Studio: 기능 구현 프롬프트 생성"
-      },
-      {
-        "command": "promptStudio.buildBugFixPrompt",
-        "title": "Prompt Studio: 버그 수정 프롬프트 생성"
-      },
-      {
-        "command": "promptStudio.buildRefactorPrompt",
-        "title": "Prompt Studio: 리팩토링 프롬프트 생성"
       }
     ]
   },
