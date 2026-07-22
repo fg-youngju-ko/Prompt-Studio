@@ -647,8 +647,17 @@
         responseSchema: QUESTIONS_SCHEMA
       }
     });
-    var parsed = JSON.parse(text);
-    return parsed.questions || [];
+    var parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch (e) {
+      throw new Error('AI 응답을 이해하지 못했습니다. 잠시 후 다시 시도해 주세요. (원문: ' + text.slice(0, 200) + ')');
+    }
+    var questions = parsed.questions || [];
+    if (questions.length === 0) {
+      throw new Error('AI가 질문을 만들지 못했습니다. 아이디어를 조금 더 자세히 적고 다시 시도해 주세요.');
+    }
+    return questions;
   }
 
   async function synthesizeProjectSummary(apiKey, idea, qa) {
