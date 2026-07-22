@@ -1,0 +1,32 @@
+{
+  "name": "prompt-studio",
+  "displayName": "Prompt Studio",
+  "description": "Claude Code와 함께 바이브 코딩할 때, 고품질 프롬프트를 쉽고 빠르게 생성하는 도구",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "promptStudio.startProject",
+        "title": "Prompt Studio: 프로젝트 시작 프롬프트 생성"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}
