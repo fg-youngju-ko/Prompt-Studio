@@ -198,3 +198,15 @@ button:hover {
   line-height: 1.6;
   user-select: text;
 }
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-actions .secondary-btn {
+  flex: 1;
+  margin-top: 0;
+  padding: 10px 18px;
+}

@@ -150,3 +150,27 @@ button#generateBtn:hover {
   line-height: 1.6;
   user-select: text;
 }
+
+.result-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.result-actions .secondary-btn {
+  flex: 1;
+  width: auto;
+  margin-top: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fafafa;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.result-actions .secondary-btn:hover {
+  border-color: var(--accent);
+}

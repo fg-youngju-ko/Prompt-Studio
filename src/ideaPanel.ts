@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { fetchClarifyingQuestions, synthesizeProjectSummary } from './aiClient';
 import { buildIdeaStartPrompt, QuestionAnswer } from './ideaPromptBuilder';
+import { addPrompt } from './promptLibrary';
 
 const API_KEY_SECRET = 'promptStudio.anthropicApiKey';
 
@@ -108,6 +109,16 @@ export class IdeaStartPanel {
         }
         break;
       }
+      case 'copyToClipboard': {
+        await vscode.env.clipboard.writeText(String(message.text ?? ''));
+        this.panel.webview.postMessage({ command: 'copied' });
+        break;
+      }
+      case 'saveToLibrary': {
+        await addPrompt(this.context, String(message.title ?? ''), String(message.content ?? ''));
+        this.panel.webview.postMessage({ command: 'saved' });
+        break;
+      }
     }
   }
 
@@ -164,6 +175,10 @@ export class IdeaStartPanel {
       <h2>생성된 프롬프트</h2>
       <p class="hint">아래 내용을 드래그해서 복사한 뒤 Claude Code에 붙여넣으세요.</p>
       <pre id="resultText"></pre>
+      <div class="result-actions">
+        <button id="copyBtn" class="secondary-btn">복사</button>
+        <button id="saveBtn" class="secondary-btn">라이브러리에 저장</button>
+      </div>
     </div>
   </div>
   <script src="${jsUri}"></script>

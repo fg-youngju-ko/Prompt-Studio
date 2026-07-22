@@ -17,6 +17,8 @@
 
   const resultCard = document.getElementById('resultCard');
   const resultText = document.getElementById('resultText');
+  const copyBtn = document.getElementById('copyBtn');
+  const saveBtn = document.getElementById('saveBtn');
 
   let currentIdea = '';
 
@@ -53,6 +55,22 @@
     generateBtn.textContent = '프롬프트 생성 중...';
     vscode.postMessage({ command: 'generatePrompt', idea: currentIdea, qa });
   });
+
+  copyBtn.addEventListener('click', () => {
+    vscode.postMessage({ command: 'copyToClipboard', text: resultText.textContent });
+  });
+
+  saveBtn.addEventListener('click', () => {
+    vscode.postMessage({ command: 'saveToLibrary', title: currentIdea, content: resultText.textContent });
+  });
+
+  function flashButton(btn, tempLabel) {
+    const original = btn.textContent;
+    btn.textContent = tempLabel;
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 1200);
+  }
 
   window.addEventListener('message', (event) => {
     const message = event.data;
@@ -113,6 +131,14 @@
       resultText.textContent = message.prompt;
       resultCard.hidden = false;
       resultCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (message.command === 'copied') {
+      flashButton(copyBtn, '복사됨');
+    }
+
+    if (message.command === 'saved') {
+      flashButton(saveBtn, '저장됨');
     }
   });
 

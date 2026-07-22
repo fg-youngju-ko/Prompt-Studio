@@ -2,10 +2,11 @@ import * as vscode from 'vscode';
 import { PromptStudioPanel } from './panel';
 import { IdeaStartPanel } from './ideaPanel';
 import { FeaturePromptPanel } from './featurePanel';
+import { LibraryPanel } from './libraryPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   const startProject = vscode.commands.registerCommand('promptStudio.startProject', () => {
-    PromptStudioPanel.createOrShow(context.extensionUri);
+    PromptStudioPanel.createOrShow(context);
   });
 
   const startFromIdea = vscode.commands.registerCommand('promptStudio.startFromIdea', () => {
@@ -13,10 +14,12 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   const buildFeaturePrompt = vscode.commands.registerCommand('promptStudio.buildFeaturePrompt', () => {
-    FeaturePromptPanel.createOrShow(context.extensionUri);
+    FeaturePromptPanel.createOrShow(context);
   });
 
-  context.subscriptions.push(startProject, startFromIdea, buildFeaturePrompt);
-}
+  const openLibrary = vscode.commands.registerCommand('promptStudio.openLibrary', () => {
+    LibraryPanel.createOrShow(context);
+  });
 
-export function deactivate() {}
+  context.subscriptions.push(startProject, startFromIdea, buildFeaturePrompt, openLibrary);
+}

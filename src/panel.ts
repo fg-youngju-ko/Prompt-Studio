@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { buildProjectStartPrompt, ProjectStartFormData } from './promptBuilder';
+import { addPrompt } from './promptLibrary';
 
 export class PromptStudioPanel {
   public static currentPanel: PromptStudioPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
+  private readonly context: vscode.ExtensionContext;
   private disposables: vscode.Disposable[] = [];
 
-  public static createOrShow(extensionUri: vscode.Uri) {
+  public static createOrShow(context: vscode.ExtensionContext) {
     const column = vscode.window.activeTextEditor?.viewColumn;
 
     if (PromptStudioPanel.currentPanel) {
@@ -20,29 +22,45 @@ export class PromptStudioPanel {
       column ?? vscode.ViewColumn.One,
       {
         enableScripts: true,
-        localResourceRoots: [vscode.Uri.joinPath(extensionUri, 'media')]
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'media')]
       }
     );
 
-    PromptStudioPanel.currentPanel = new PromptStudioPanel(panel, extensionUri);
+    PromptStudioPanel.currentPanel = new PromptStudioPanel(panel, context);
   }
 
-  private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+  private constructor(panel: vscode.WebviewPanel, context: vscode.ExtensionContext) {
     this.panel = panel;
-    this.panel.webview.html = this.getHtml(extensionUri);
+    this.context = context;
+    this.panel.webview.html = this.getHtml(context.extensionUri);
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
     this.panel.webview.onDidReceiveMessage(
-      (message) => {
-        if (message.command === 'generate') {
-          const prompt = buildProjectStartPrompt(message.data as ProjectStartFormData);
-          this.panel.webview.postMessage({ command: 'showPrompt', prompt });
-        }
-      },
+      (message) => this.handleMessage(message),
       null,
       this.disposables
     );
+  }
+
+  private async handleMessage(message: { command: string; [key: string]: unknown }) {
+    switch (message.command) {
+      case 'generate': {
+        const prompt = buildProjectStartPrompt(message.data as ProjectStartFormData);
+        this.panel.webview.postMessage({ command: 'showPrompt', prompt });
+        break;
+      }
+      case 'copyToClipboard': {
+        await vscode.env.clipboard.writeText(String(message.text ?? ''));
+        this.panel.webview.postMessage({ command: 'copied' });
+        break;
+      }
+      case 'saveToLibrary': {
+        await addPrompt(this.context, String(message.title ?? ''), String(message.content ?? ''));
+        this.panel.webview.postMessage({ command: 'saved' });
+        break;
+      }
+    }
   }
 
   private getHtml(extensionUri: vscode.Uri): string {
@@ -101,6 +119,10 @@ export class PromptStudioPanel {
       <h2>생성된 프롬프트</h2>
       <p class="hint">아래 내용을 드래그해서 복사한 뒤 Claude Code에 붙여넣으세요.</p>
       <pre id="resultText"></pre>
+      <div class="result-actions">
+        <button id="copyBtn" class="secondary-btn">복사</button>
+        <button id="saveBtn" class="secondary-btn">라이브러리에 저장</button>
+      </div>
     </div>
   </div>
   <script src="${jsUri}"></script>

@@ -10,6 +10,8 @@
   const generateBtn = document.getElementById('generateBtn');
   const resultCard = document.getElementById('resultCard');
   const resultText = document.getElementById('resultText');
+  const copyBtn = document.getElementById('copyBtn');
+  const saveBtn = document.getElementById('saveBtn');
 
   let selectedCategory = '';
 
@@ -41,12 +43,38 @@
     vscode.postMessage({ command: 'generate', category: selectedCategory, description });
   });
 
+  copyBtn.addEventListener('click', () => {
+    vscode.postMessage({ command: 'copyToClipboard', text: resultText.textContent });
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const title = selectedCategory ? `${selectedCategory} 기능 구현` : '기능 구현 프롬프트';
+    vscode.postMessage({ command: 'saveToLibrary', title, content: resultText.textContent });
+  });
+
+  function flashButton(btn, tempLabel) {
+    const original = btn.textContent;
+    btn.textContent = tempLabel;
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 1200);
+  }
+
   window.addEventListener('message', (event) => {
     const message = event.data;
+
     if (message.command === 'showPrompt') {
       resultText.textContent = message.prompt;
       resultCard.hidden = false;
       resultCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (message.command === 'copied') {
+      flashButton(copyBtn, '복사됨');
+    }
+
+    if (message.command === 'saved') {
+      flashButton(saveBtn, '저장됨');
     }
   });
 })();
