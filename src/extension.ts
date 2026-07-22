@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { PromptStudioPanel } from './panel';
 import { IdeaStartPanel } from './ideaPanel';
+import { FeaturePromptPanel } from './featurePanel';
 
 export function activate(context: vscode.ExtensionContext) {
   const startProject = vscode.commands.registerCommand('promptStudio.startProject', () => {
@@ -11,7 +12,11 @@ export function activate(context: vscode.ExtensionContext) {
     IdeaStartPanel.createOrShow(context);
   });
 
-  context.subscriptions.push(startProject, startFromIdea);
+  const buildFeaturePrompt = vscode.commands.registerCommand('promptStudio.buildFeaturePrompt', () => {
+    FeaturePromptPanel.createOrShow(context.extensionUri);
+  });
+
+  context.subscriptions.push(startProject, startFromIdea, buildFeaturePrompt);
 }
 
 export function deactivate() {}
