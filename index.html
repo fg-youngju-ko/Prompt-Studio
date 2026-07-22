@@ -557,8 +557,8 @@
 
   /* ---------- 2. 아이디어로 시작하기 ---------- */
   var API_KEY_STORAGE = 'promptStudio.apiKey';
-  var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
-  var GEMINI_MODEL = 'gemini-3.5-flash-lite'; // 무료 등급용 경량 모델
+  var GEMINI_MODEL = 'gemini-2.5-flash-lite'; // 무료 등급용 경량 모델
+  var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
 
   var CLARIFY_SYSTEM_PROMPT = [
     '당신은 바이브 코딩 프로젝트 기획을 도와주는 어시스턴트입니다.',
@@ -617,40 +617,48 @@
     });
     var data = await res.json().catch(function () { return {}; });
     if (!res.ok) {
-      // Gemini API 에러 응답은 배열로 감싸져 오는 경우([{ error: {...} }])와
-      // 객체로 바로 오는 경우({ error: {...} })가 모두 관찰되어 둘 다 처리한다.
+      // 실제로 관찰된 에러 응답은 배열로 감싸진 경우([{ error: {...} }])와
+      // 객체로 바로 오는 경우({ error: {...} })가 둘 다 있어 모두 처리한다.
       var errObj = Array.isArray(data) ? (data[0] && data[0].error) : data.error;
       var msg = (errObj && errObj.message) || ('요청이 실패했습니다 (' + res.status + ')');
       throw new Error(msg);
     }
-    return data;
+
+    var candidate = (data.candidates || [])[0];
+    var finishReason = candidate && candidate.finishReason;
+    if (finishReason && finishReason !== 'STOP') {
+      throw new Error('AI 응답이 완전하지 않습니다 (' + finishReason + '). 다시 시도해 주세요.');
+    }
+
+    var parts = candidate && candidate.content && candidate.content.parts;
+    var text = parts && parts.map(function (p) { return p.text || ''; }).join('');
+    if (!text) {
+      throw new Error('AI로부터 응답을 받지 못했습니다. 다시 시도해 주세요.');
+    }
+    return text;
   }
 
   async function fetchClarifyingQuestions(apiKey, idea) {
-    var data = await callGemini(apiKey, {
-      model: GEMINI_MODEL,
-      system_instruction: CLARIFY_SYSTEM_PROMPT,
-      input: idea,
-      response_format: {
-        type: 'text',
-        mime_type: 'application/json',
-        schema: QUESTIONS_SCHEMA
+    var text = await callGemini(apiKey, {
+      contents: [{ parts: [{ text: idea }] }],
+      systemInstruction: { parts: [{ text: CLARIFY_SYSTEM_PROMPT }] },
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: QUESTIONS_SCHEMA
       }
     });
-    if (!data.output_text) return [];
-    var parsed = JSON.parse(data.output_text);
+    var parsed = JSON.parse(text);
     return parsed.questions || [];
   }
 
   async function synthesizeProjectSummary(apiKey, idea, qa) {
     var answered = qa.filter(function (item) { return item.answer.trim().length > 0; });
     var qaText = answered.map(function (item) { return item.question + ' ' + item.answer; }).join('\n');
-    var data = await callGemini(apiKey, {
-      model: GEMINI_MODEL,
-      system_instruction: SUMMARY_SYSTEM_PROMPT,
-      input: '아이디어: ' + idea + '\n\n질문과 답변:\n' + (qaText || '(답변 없음)')
+    var text = await callGemini(apiKey, {
+      contents: [{ parts: [{ text: '아이디어: ' + idea + '\n\n질문과 답변:\n' + (qaText || '(답변 없음)') }] }],
+      systemInstruction: { parts: [{ text: SUMMARY_SYSTEM_PROMPT }] }
     });
-    return data.output_text ? data.output_text.trim() : idea;
+    return text.trim();
   }
 
   function buildIdeaStartPrompt(idea, summary) {
