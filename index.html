@@ -176,7 +176,7 @@
 <main>
   <p class="privacy-note">
     <b>API 키와 저장한 프롬프트는 이 브라우저에만(localStorage) 저장</b>되고, 서버로 전송되지 않습니다.
-    "아이디어로 시작하기"의 AI 호출만 입력하신 키로 Anthropic API에 직접 연결됩니다.
+    "아이디어로 시작하기"의 AI 호출만 입력하신 키로 Google Gemini API에 직접 연결됩니다.
   </p>
 
   <!-- 1. 프로젝트 시작 -->
@@ -235,19 +235,16 @@
     <p class="subtitle">떠오른 아이디어를 한 줄로 적으면, AI가 기획을 구체화할 질문을 해드립니다.</p>
 
     <div class="card">
-      <label for="apiKey">AI API 키 (Anthropic Claude)</label>
+      <label for="apiKey">AI API 키 (Google Gemini)</label>
       <div class="key-row">
-        <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        <input id="apiKey" type="password" placeholder="AIza..." />
         <button id="saveKeyBtn" class="secondary-btn">저장</button>
       </div>
       <p class="key-status" id="keyStatus">키가 저장되어 있지 않습니다.</p>
 
-      <label class="ai-links-label">API 키 발급 / 다른 AI 서비스</label>
+      <label class="ai-links-label">API 키 발급</label>
       <div class="ai-links">
-        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude (Anthropic)</a>
-        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini</a>
-        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">GPT (OpenAI)</a>
-        <a href="https://www.perplexity.ai" target="_blank" rel="noopener">Perplexity</a>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini (Google AI Studio)</a>
       </div>
     </div>
 
@@ -559,8 +556,8 @@
 
   /* ---------- 2. 아이디어로 시작하기 ---------- */
   var API_KEY_STORAGE = 'promptStudio.apiKey';
-  var CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-  var CLAUDE_MODEL = 'claude-opus-4-8';
+  var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/interactions';
+  var GEMINI_MODEL = 'gemini-3.5-flash-lite'; // 무료 등급용 경량 모델
 
   var CLARIFY_SYSTEM_PROMPT = [
     '당신은 바이브 코딩 프로젝트 기획을 도와주는 어시스턴트입니다.',
@@ -588,14 +585,12 @@
             question: { type: 'string', description: '괄호 예시 없이 간결한 질문 한 문장' },
             suggestedAnswer: { type: 'string', description: '아이디어에 이미 답이 드러나 있으면 그 답, 아니면 빈 문자열' }
           },
-          required: ['question', 'suggestedAnswer'],
-          additionalProperties: false
+          required: ['question', 'suggestedAnswer']
         },
         description: '아이디어를 구체화하기 위한 역질문 목록 (3~6개)'
       }
     },
-    required: ['questions'],
-    additionalProperties: false
+    required: ['questions']
   };
 
   var SUMMARY_SYSTEM_PROMPT = [
@@ -610,50 +605,51 @@
     '- 결과는 문단 텍스트만 출력하세요. 제목이나 목록 형식을 쓰지 마세요.'
   ].join('\n');
 
-  async function callClaude(apiKey, body) {
-    var res = await fetch(CLAUDE_API_URL, {
+  async function callGemini(apiKey, body) {
+    var res = await fetch(GEMINI_API_URL, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'x-goog-api-key': apiKey
       },
       body: JSON.stringify(body)
     });
     var data = await res.json().catch(function () { return {}; });
     if (!res.ok) {
-      var msg = (data && data.error && data.error.message) || ('요청이 실패했습니다 (' + res.status + ')');
+      // Gemini API 에러 응답은 배열로 감싸져 오는 경우([{ error: {...} }])와
+      // 객체로 바로 오는 경우({ error: {...} })가 모두 관찰되어 둘 다 처리한다.
+      var errObj = Array.isArray(data) ? (data[0] && data[0].error) : data.error;
+      var msg = (errObj && errObj.message) || ('요청이 실패했습니다 (' + res.status + ')');
       throw new Error(msg);
     }
     return data;
   }
 
   async function fetchClarifyingQuestions(apiKey, idea) {
-    var data = await callClaude(apiKey, {
-      model: CLAUDE_MODEL,
-      max_tokens: 1024,
-      system: CLARIFY_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: idea }],
-      output_config: { format: { type: 'json_schema', schema: QUESTIONS_SCHEMA } }
+    var data = await callGemini(apiKey, {
+      model: GEMINI_MODEL,
+      system_instruction: CLARIFY_SYSTEM_PROMPT,
+      input: idea,
+      response_format: {
+        type: 'text',
+        mime_type: 'application/json',
+        schema: QUESTIONS_SCHEMA
+      }
     });
-    var textBlock = (data.content || []).filter(function (b) { return b.type === 'text'; })[0];
-    if (!textBlock) return [];
-    var parsed = JSON.parse(textBlock.text);
+    if (!data.output_text) return [];
+    var parsed = JSON.parse(data.output_text);
     return parsed.questions || [];
   }
 
   async function synthesizeProjectSummary(apiKey, idea, qa) {
     var answered = qa.filter(function (item) { return item.answer.trim().length > 0; });
     var qaText = answered.map(function (item) { return item.question + ' ' + item.answer; }).join('\n');
-    var data = await callClaude(apiKey, {
-      model: CLAUDE_MODEL,
-      max_tokens: 512,
-      system: SUMMARY_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: '아이디어: ' + idea + '\n\n질문과 답변:\n' + (qaText || '(답변 없음)') }]
+    var data = await callGemini(apiKey, {
+      model: GEMINI_MODEL,
+      system_instruction: SUMMARY_SYSTEM_PROMPT,
+      input: '아이디어: ' + idea + '\n\n질문과 답변:\n' + (qaText || '(답변 없음)')
     });
-    var textBlock = (data.content || []).filter(function (b) { return b.type === 'text'; })[0];
-    return textBlock ? textBlock.text.trim() : idea;
+    return data.output_text ? data.output_text.trim() : idea;
   }
 
   function buildIdeaStartPrompt(idea, summary) {
