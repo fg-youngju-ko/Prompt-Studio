@@ -2,7 +2,13 @@
   "name": "prompt-studio",
   "displayName": "Prompt Studio",
   "description": "Claude Code와 함께 바이브 코딩할 때, 고품질 프롬프트를 쉽고 빠르게 생성하는 도구",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "publisher": "fg-youngju-ko",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fg-youngju-ko/Prompt-Studio.git"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
