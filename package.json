@@ -16,6 +16,10 @@
       {
         "command": "promptStudio.startProject",
         "title": "Prompt Studio: 프로젝트 시작 프롬프트 생성"
+      },
+      {
+        "command": "promptStudio.startFromIdea",
+        "title": "Prompt Studio: 아이디어로 시작하기"
       }
     ]
   },
@@ -33,5 +37,8 @@
     "@vscode/test-electron": "^3.0.0",
     "mocha": "^11.7.6",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.5"
   }
 }

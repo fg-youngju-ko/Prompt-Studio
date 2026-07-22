@@ -1,12 +1,17 @@
 import * as vscode from 'vscode';
 import { PromptStudioPanel } from './panel';
+import { IdeaStartPanel } from './ideaPanel';
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand('promptStudio.startProject', () => {
+  const startProject = vscode.commands.registerCommand('promptStudio.startProject', () => {
     PromptStudioPanel.createOrShow(context.extensionUri);
   });
 
-  context.subscriptions.push(disposable);
+  const startFromIdea = vscode.commands.registerCommand('promptStudio.startFromIdea', () => {
+    IdeaStartPanel.createOrShow(context);
+  });
+
+  context.subscriptions.push(startProject, startFromIdea);
 }
 
 export function deactivate() {}

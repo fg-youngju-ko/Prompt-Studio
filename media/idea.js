@@ -1,0 +1,105 @@
+(function () {
+  const vscode = acquireVsCodeApi();
+
+  const apiKeyInput = document.getElementById('apiKey');
+  const saveKeyBtn = document.getElementById('saveKeyBtn');
+  const keyStatus = document.getElementById('keyStatus');
+
+  const ideaInput = document.getElementById('idea');
+  const askBtn = document.getElementById('askBtn');
+  const ideaError = document.getElementById('ideaError');
+
+  const questionsCard = document.getElementById('questionsCard');
+  const questionsList = document.getElementById('questionsList');
+  const generateBtn = document.getElementById('generateBtn');
+
+  const resultCard = document.getElementById('resultCard');
+  const resultText = document.getElementById('resultText');
+
+  let currentIdea = '';
+
+  saveKeyBtn.addEventListener('click', () => {
+    vscode.postMessage({ command: 'saveApiKey', apiKey: apiKeyInput.value });
+    apiKeyInput.value = '';
+  });
+
+  askBtn.addEventListener('click', () => {
+    const idea = ideaInput.value.trim();
+    ideaError.hidden = true;
+
+    if (!idea) {
+      ideaError.textContent = '아이디어를 한 줄 입력해 주세요.';
+      ideaError.hidden = false;
+      return;
+    }
+
+    currentIdea = idea;
+    askBtn.disabled = true;
+    askBtn.textContent = '질문 생성 중...';
+    vscode.postMessage({ command: 'getQuestions', idea });
+  });
+
+  generateBtn.addEventListener('click', () => {
+    const items = questionsList.querySelectorAll('.question-item');
+    const qa = Array.from(items).map((item) => ({
+      question: item.querySelector('p').textContent,
+      answer: item.querySelector('textarea').value
+    }));
+
+    vscode.postMessage({ command: 'generatePrompt', idea: currentIdea, qa });
+  });
+
+  window.addEventListener('message', (event) => {
+    const message = event.data;
+
+    if (message.command === 'apiKeyStatus') {
+      if (message.hasKey) {
+        keyStatus.textContent = '키가 저장되어 있습니다.';
+        keyStatus.classList.add('ok');
+      } else {
+        keyStatus.textContent = '키가 저장되어 있지 않습니다.';
+        keyStatus.classList.remove('ok');
+      }
+    }
+
+    if (message.command === 'showQuestions') {
+      askBtn.disabled = false;
+      askBtn.textContent = '질문받기';
+
+      questionsList.innerHTML = '';
+      message.questions.forEach((q) => {
+        const item = document.createElement('div');
+        item.className = 'question-item';
+
+        const p = document.createElement('p');
+        p.textContent = q;
+
+        const textarea = document.createElement('textarea');
+        textarea.rows = 2;
+        textarea.placeholder = '답변을 입력하세요';
+
+        item.appendChild(p);
+        item.appendChild(textarea);
+        questionsList.appendChild(item);
+      });
+
+      questionsCard.hidden = false;
+      questionsCard.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    if (message.command === 'questionsError') {
+      askBtn.disabled = false;
+      askBtn.textContent = '질문받기';
+      ideaError.textContent = message.error;
+      ideaError.hidden = false;
+    }
+
+    if (message.command === 'showPrompt') {
+      resultText.textContent = message.prompt;
+      resultCard.hidden = false;
+      resultCard.scrollIntoView({ behavior: 'smooth' });
+    }
+  });
+
+  vscode.postMessage({ command: 'ready' });
+})();
