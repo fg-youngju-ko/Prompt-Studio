@@ -239,6 +239,7 @@
       <div class="key-row">
         <input id="apiKey" type="password" placeholder="AIza..." />
         <button id="saveKeyBtn" class="secondary-btn">저장</button>
+        <button id="clearKeyBtn" class="secondary-btn danger-btn">초기화</button>
       </div>
       <p class="key-status" id="keyStatus">키가 저장되어 있지 않습니다.</p>
 
@@ -671,6 +672,7 @@
 
   var apiKeyInput = document.getElementById('apiKey');
   var saveKeyBtn = document.getElementById('saveKeyBtn');
+  var clearKeyBtn = document.getElementById('clearKeyBtn');
   var keyStatus = document.getElementById('keyStatus');
 
   function refreshKeyStatus() {
@@ -684,6 +686,12 @@
     if (value) {
       localStorage.setItem(API_KEY_STORAGE, value);
     }
+    apiKeyInput.value = '';
+    refreshKeyStatus();
+  });
+
+  clearKeyBtn.addEventListener('click', function () {
+    localStorage.removeItem(API_KEY_STORAGE);
     apiKeyInput.value = '';
     refreshKeyStatus();
   });
