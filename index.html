@@ -557,8 +557,24 @@
 
   /* ---------- 2. 아이디어로 시작하기 ---------- */
   var API_KEY_STORAGE = 'promptStudio.apiKey';
-  var GEMINI_MODEL = 'gemini-2.5-flash-lite'; // 무료 등급용 경량 모델
-  var GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent';
+  // 모델 이름은 Google이 자주 바꾸고(신규 사용자에게 특정 모델을 막기도 함),
+  // 문서만으로는 신뢰할 수 없다는 게 확인된 적이 있어 후보를 여러 개 두고
+  // "모델을 쓸 수 없다"는 에러가 나면 다음 후보로 자동 재시도한다.
+  var GEMINI_MODEL_CANDIDATES = ['gemini-3.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.5-pro'];
+
+  function geminiUrlFor(model) {
+    return 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent';
+  }
+
+  function isModelAvailabilityError(message) {
+    var m = (message || '').toLowerCase();
+    return m.indexOf('model') !== -1 && (
+      m.indexOf('no longer available') !== -1 ||
+      m.indexOf('not found') !== -1 ||
+      m.indexOf('not available') !== -1 ||
+      m.indexOf('is not supported') !== -1
+    );
+  }
 
   var CLARIFY_SYSTEM_PROMPT = [
     '당신은 바이브 코딩 프로젝트 기획을 도와주는 어시스턴트입니다.',
@@ -606,8 +622,11 @@
     '- 결과는 문단 텍스트만 출력하세요. 제목이나 목록 형식을 쓰지 마세요.'
   ].join('\n');
 
-  async function callGemini(apiKey, body) {
-    var res = await fetch(GEMINI_API_URL, {
+  async function callGemini(apiKey, body, candidateIndex) {
+    candidateIndex = candidateIndex || 0;
+    var model = GEMINI_MODEL_CANDIDATES[candidateIndex];
+
+    var res = await fetch(geminiUrlFor(model), {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -621,6 +640,11 @@
       // 객체로 바로 오는 경우({ error: {...} })가 둘 다 있어 모두 처리한다.
       var errObj = Array.isArray(data) ? (data[0] && data[0].error) : data.error;
       var msg = (errObj && errObj.message) || ('요청이 실패했습니다 (' + res.status + ')');
+
+      // "이 모델은 더 이상 사용할 수 없습니다" 류의 에러면 다음 후보 모델로 자동 재시도한다.
+      if (isModelAvailabilityError(msg) && candidateIndex + 1 < GEMINI_MODEL_CANDIDATES.length) {
+        return callGemini(apiKey, body, candidateIndex + 1);
+      }
       throw new Error(msg);
     }
 
