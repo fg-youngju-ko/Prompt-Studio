@@ -3,17 +3,12 @@ export interface QuestionAnswer {
   answer: string;
 }
 
-export function buildIdeaStartPrompt(idea: string, qa: QuestionAnswer[]): string {
-  const qaSection = qa
-    .filter((item) => item.answer.trim().length > 0)
-    .map((item) => `- ${item.question}\n  → ${item.answer}`)
-    .join('\n');
-
+export function buildIdeaStartPrompt(idea: string, summary: string): string {
   return `# 아이디어
 ${idea}
 
-# 아이디어를 구체화한 답변
-${qaSection || '(답변 없음)'}
+# 프로젝트 설명
+${summary}
 
 # 현재 작업 범위
 지금은 프로젝트의 첫 번째 MVP만 개발한다. 전체 기능을 한 번에 만들지 않는다.
@@ -28,5 +23,5 @@ ${qaSection || '(답변 없음)'}
 - 변경 내용 요약: 작업이 끝나면 무엇을 바꿨는지 간단히 요약한다.
 
 # 요청
-위 아이디어와 답변을 바탕으로 이 프로젝트의 첫 번째 MVP를 시작하고 싶습니다. 먼저 구현 계획과 필요한 파일, 영향받는 파일을 설명해 주세요. 제 승인 후에 개발을 시작해 주세요.`;
+위 내용을 바탕으로 이 프로젝트의 첫 번째 MVP를 시작하고 싶습니다. 먼저 구현 계획과 필요한 파일, 영향받는 파일을 설명해 주세요. 제 승인 후에 개발을 시작해 주세요.`;
 }

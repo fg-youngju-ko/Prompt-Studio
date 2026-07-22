@@ -13,6 +13,8 @@
   const questionsList = document.getElementById('questionsList');
   const generateBtn = document.getElementById('generateBtn');
 
+  const promptError = document.getElementById('promptError');
+
   const resultCard = document.getElementById('resultCard');
   const resultText = document.getElementById('resultText');
 
@@ -46,6 +48,9 @@
       answer: item.querySelector('textarea').value
     }));
 
+    promptError.hidden = true;
+    generateBtn.disabled = true;
+    generateBtn.textContent = '프롬프트 생성 중...';
     vscode.postMessage({ command: 'generatePrompt', idea: currentIdea, qa });
   });
 
@@ -72,11 +77,12 @@
         item.className = 'question-item';
 
         const p = document.createElement('p');
-        p.textContent = q;
+        p.textContent = q.question;
 
         const textarea = document.createElement('textarea');
         textarea.rows = 2;
         textarea.placeholder = '답변을 입력하세요';
+        textarea.value = q.suggestedAnswer || '';
 
         item.appendChild(p);
         item.appendChild(textarea);
@@ -94,7 +100,16 @@
       ideaError.hidden = false;
     }
 
+    if (message.command === 'promptError') {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '프롬프트 생성';
+      promptError.textContent = message.error;
+      promptError.hidden = false;
+    }
+
     if (message.command === 'showPrompt') {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '프롬프트 생성';
       resultText.textContent = message.prompt;
       resultCard.hidden = false;
       resultCard.scrollIntoView({ behavior: 'smooth' });

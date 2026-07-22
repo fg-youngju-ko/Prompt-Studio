@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { fetchClarifyingQuestions } from './aiClient';
+import { fetchClarifyingQuestions, synthesizeProjectSummary } from './aiClient';
 import { buildIdeaStartPrompt, QuestionAnswer } from './ideaPromptBuilder';
 
 const API_KEY_SECRET = 'promptStudio.anthropicApiKey';
@@ -86,8 +86,26 @@ export class IdeaStartPanel {
       case 'generatePrompt': {
         const idea = String(message.idea ?? '');
         const qa = (message.qa ?? []) as QuestionAnswer[];
-        const prompt = buildIdeaStartPrompt(idea, qa);
-        this.panel.webview.postMessage({ command: 'showPrompt', prompt });
+        const apiKey = await this.context.secrets.get(API_KEY_SECRET);
+
+        if (!apiKey) {
+          this.panel.webview.postMessage({
+            command: 'promptError',
+            error: 'API 키가 저장되어 있지 않습니다. 먼저 API 키를 입력하고 저장해 주세요.'
+          });
+          return;
+        }
+
+        try {
+          const summary = await synthesizeProjectSummary(apiKey, idea, qa);
+          const prompt = buildIdeaStartPrompt(idea, summary);
+          this.panel.webview.postMessage({ command: 'showPrompt', prompt });
+        } catch (err) {
+          this.panel.webview.postMessage({
+            command: 'promptError',
+            error: err instanceof Error ? err.message : String(err)
+          });
+        }
         break;
       }
     }
@@ -139,6 +157,7 @@ export class IdeaStartPanel {
       <h2>몇 가지만 답해주세요</h2>
       <div id="questionsList"></div>
       <button id="generateBtn">프롬프트 생성</button>
+      <p class="error" id="promptError" hidden></p>
     </div>
 
     <div class="card result-card" id="resultCard" hidden>
