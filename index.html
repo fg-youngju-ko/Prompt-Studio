@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Prompt Studio</title>
+<style>
+  :root {
+    --accent: #34d399;
+    --accent-dark: #10b981;
+    --bg: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --danger: #dc2626;
+    --panel-bg: #ffffff;
+    --field-bg: #fafafa;
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181d; --text: #e8eaed; --muted: #9aa1ac; --border: #2c2f36;
+    --panel-bg: #1c1f26; --field-bg: #23262e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181d; --text: #e8eaed; --muted: #9aa1ac; --border: #2c2f36;
+      --panel-bg: #1c1f26; --field-bg: #23262e;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", sans-serif;
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+  }
+  .header-inner { max-width: 720px; margin: 0 auto; }
+  .brand { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .brand h1 { font-size: 18px; font-weight: 800; margin: 0; }
+  .brand span { font-size: 12px; color: var(--muted); }
+
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  .nav-btn {
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--field-bg); color: var(--text); font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .nav-btn:hover { border-color: var(--accent); }
+  .nav-btn.active { background: var(--accent); border-color: var(--accent); color: #08130e; }
+
+  main { max-width: 640px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  h2 { font-size: 22px; font-weight: 700; margin: 0 0 4px; text-wrap: balance; }
+  .subtitle { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+
+  .card {
+    background: var(--panel-bg); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 20px;
+  }
+
+  label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 6px; color: var(--text); }
+  label:first-of-type { margin-top: 0; }
+
+  input[type="text"], input[type="password"], textarea, select {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; font-family: inherit; color: var(--text); background: var(--field-bg);
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--accent); background: var(--panel-bg);
+  }
+  textarea { resize: vertical; }
+
+  .privacy-note {
+    font-size: 12px; color: var(--muted); background: var(--field-bg);
+    border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+    margin-bottom: 20px; line-height: 1.6;
+  }
+  .privacy-note b { color: var(--text); }
+
+  .key-row { display: flex; gap: 8px; }
+  .key-row input { flex: 1; }
+
+  .key-status { font-size: 12px; color: var(--muted); margin: 6px 0 0; }
+  .key-status.ok { color: var(--accent-dark); }
+
+  .ai-links-label { margin-top: 20px; }
+  .ai-links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ai-links a {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px;
+    font-size: 12px; text-decoration: none; color: var(--text); background: var(--field-bg);
+  }
+  .ai-links a:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+  .category-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+  .category-btn {
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--field-bg); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .category-btn:hover { border-color: var(--accent); }
+  .category-btn.selected { background: var(--accent); border-color: var(--accent); color: #08130e; }
+
+  .error { color: var(--danger); font-size: 13px; margin: 10px 0 0; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+  button.primary-btn {
+    width: 100%; margin-top: 24px; padding: 14px; border: none; border-radius: 12px;
+    background: var(--accent); color: #08130e; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  button.primary-btn:hover { background: var(--accent-dark); }
+  button.primary-btn:disabled { opacity: 0.6; cursor: default; }
+  button:focus-visible { outline: 2px solid var(--accent-dark); outline-offset: 2px; }
+
+  .secondary-btn {
+    padding: 10px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--field-bg); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .secondary-btn:hover { border-color: var(--accent); }
+  .danger-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .result-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .result-actions .secondary-btn { flex: 1; }
+
+  #resultText, .item-content {
+    white-space: pre-wrap; word-break: break-word; background: var(--field-bg);
+    border: 1px solid var(--border); border-radius: 10px; padding: 16px;
+    font-size: 13px; line-height: 1.6; user-select: text; margin: 0;
+    width: 100%; font-family: inherit; color: var(--text);
+  }
+  textarea.item-content { resize: vertical; }
+
+  .question-item { margin-bottom: 16px; }
+  .question-item p { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+
+  .item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .star-btn {
+    padding: 4px 8px; border: none; background: none; color: var(--muted);
+    font-size: 18px; cursor: pointer; line-height: 1;
+  }
+  .star-btn.active { color: #f59e0b; }
+  .item-title { flex: 1; font-size: 14px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-date { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .item-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .item-actions .secondary-btn { flex: 1; }
+
+  footer { max-width: 640px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 12px; }
+
+  @media (prefers-reduced-motion: no-preference) { .reveal { animation: fadeIn 0.25s ease-out; } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>Prompt Studio</h1>
+      <span>Claude Code용 프롬프트 빌더</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-tab="project">프로젝트 시작</button>
+      <button class="nav-btn" data-tab="idea">아이디어로 시작하기</button>
+      <button class="nav-btn" data-tab="feature">기능 구현</button>
+      <button class="nav-btn" data-tab="library">라이브러리</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <p class="privacy-note">
+    <b>API 키와 저장한 프롬프트는 이 브라우저에만(localStorage) 저장</b>되고, 서버로 전송되지 않습니다.
+    "아이디어로 시작하기"의 AI 호출만 입력하신 키로 Anthropic API에 직접 연결됩니다.
+  </p>
+
+  <!-- 1. 프로젝트 시작 -->
+  <section class="tab active" id="tab-project">
+    <h2>프로젝트 시작 프롬프트 생성</h2>
+    <p class="subtitle">몇 가지 질문에 답하면 Claude Code에 붙여넣을 프롬프트가 만들어집니다.</p>
+
+    <div class="card">
+      <label for="projectName">프로젝트명</label>
+      <input id="projectName" type="text" placeholder="예: 가계부 앱" />
+
+      <label for="projectPurpose">프로젝트 목적</label>
+      <textarea id="projectPurpose" rows="3" placeholder="이 프로젝트로 무엇을 하고 싶은가요?"></textarea>
+
+      <label for="platform">플랫폼</label>
+      <select id="platform">
+        <option value="Web">Web</option>
+        <option value="Mobile">Mobile</option>
+        <option value="Desktop">Desktop</option>
+      </select>
+
+      <label for="devPurpose">개발 목적</label>
+      <select id="devPurpose">
+        <option value="공부">공부</option>
+        <option value="포트폴리오">포트폴리오</option>
+        <option value="실사용">실사용</option>
+        <option value="회사 업무">회사 업무</option>
+      </select>
+
+      <label for="techStack">사용할 기술스택</label>
+      <input id="techStack" type="text" placeholder="예: React, Node.js, PostgreSQL" />
+
+      <label for="designStyle">디자인 스타일</label>
+      <input id="designStyle" type="text" placeholder="예: 미니멀, 화이트+포인트컬러" />
+
+      <label for="devTendency">개발 성향</label>
+      <input id="devTendency" type="text" placeholder="예: 빠르게 만들고 다듬기 vs 처음부터 꼼꼼히" />
+
+      <button class="primary-btn" id="projectGenerateBtn">프롬프트 생성</button>
+    </div>
+
+    <div class="card" id="projectResultCard" hidden>
+      <h2>생성된 프롬프트</h2>
+      <p class="hint">아래 내용을 드래그해서 복사한 뒤 Claude Code에 붙여넣으세요.</p>
+      <pre id="projectResultText"></pre>
+      <div class="result-actions">
+        <button class="secondary-btn" id="projectCopyBtn">복사</button>
+        <button class="secondary-btn" id="projectSaveBtn">라이브러리에 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 아이디어로 시작하기 -->
+  <section class="tab" id="tab-idea">
+    <h2>아이디어로 시작하기</h2>
+    <p class="subtitle">떠오른 아이디어를 한 줄로 적으면, AI가 기획을 구체화할 질문을 해드립니다.</p>
+
+    <div class="card">
+      <label for="apiKey">AI API 키 (Anthropic Claude)</label>
+      <div class="key-row">
+        <input id="apiKey" type="password" placeholder="sk-ant-..." />
+        <button id="saveKeyBtn" class="secondary-btn">저장</button>
+      </div>
+      <p class="key-status" id="keyStatus">키가 저장되어 있지 않습니다.</p>
+
+      <label class="ai-links-label">API 키 발급 / 다른 AI 서비스</label>
+      <div class="ai-links">
+        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude (Anthropic)</a>
+        <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Gemini</a>
+        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">GPT (OpenAI)</a>
+        <a href="https://www.perplexity.ai" target="_blank" rel="noopener">Perplexity</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <label for="idea">아이디어</label>
+      <textarea id="idea" rows="2" placeholder="예: 가계부 앱 만들고 싶어"></textarea>
+      <button class="primary-btn" id="askBtn">질문받기</button>
+      <p class="error" id="ideaError" hidden></p>
+    </div>
+
+    <div class="card" id="questionsCard" hidden>
+      <h2>몇 가지만 답해주세요</h2>
+      <p class="hint">아이디어에서 이미 드러난 답은 미리 채워져 있습니다. 그대로 두거나 수정해서 진행하세요.</p>
+      <div id="questionsList"></div>
+      <button class="primary-btn" id="ideaGenerateBtn">프롬프트 생성</button>
+      <p class="error" id="promptError" hidden></p>
+    </div>
+
+    <div class="card" id="ideaResultCard" hidden>
+      <h2>생성된 프롬프트</h2>
+      <p class="hint">아래 내용을 드래그해서 복사한 뒤 Claude Code에 붙여넣으세요.</p>
+      <pre id="ideaResultText"></pre>
+      <div class="result-actions">
+        <button class="secondary-btn" id="ideaCopyBtn">복사</button>
+        <button class="secondary-btn" id="ideaSaveBtn">라이브러리에 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 기능 구현 -->
+  <section class="tab" id="tab-feature">
+    <h2>기능 구현 프롬프트 생성</h2>
+    <p class="subtitle">카테고리를 고르고 구현하고 싶은 내용을 적으면, 카테고리별 체크포인트가 담긴 프롬프트를 만들어 드립니다.</p>
+
+    <div class="card">
+      <label>카테고리</label>
+      <div class="category-grid" id="categoryGrid"></div>
+      <p class="error" id="categoryError" hidden>카테고리를 선택해 주세요.</p>
+
+      <label for="description">구현하고 싶은 내용</label>
+      <textarea id="description" rows="3" placeholder="예: 이메일/비밀번호로 로그인하고, 로그인 상태를 유지하고 싶어요"></textarea>
+      <p class="error" id="descriptionError" hidden></p>
+
+      <button class="primary-btn" id="featureGenerateBtn">프롬프트 생성</button>
+    </div>
+
+    <div class="card" id="featureResultCard" hidden>
+      <h2>생성된 프롬프트</h2>
+      <p class="hint">아래 내용을 드래그해서 복사한 뒤 Claude Code에 붙여넣으세요.</p>
+      <pre id="featureResultText"></pre>
+      <div class="result-actions">
+        <button class="secondary-btn" id="featureCopyBtn">복사</button>
+        <button class="secondary-btn" id="featureSaveBtn">라이브러리에 저장</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 라이브러리 -->
+  <section class="tab" id="tab-library">
+    <h2>프롬프트 라이브러리</h2>
+    <p class="subtitle">저장한 프롬프트를 모아봅니다. 별표를 누르면 즐겨찾기로 상단에 고정됩니다.</p>
+
+    <div id="libraryEmpty" class="card" hidden>
+      <p class="hint">아직 저장한 프롬프트가 없습니다. 다른 탭에서 "라이브러리에 저장"을 눌러보세요.</p>
+    </div>
+
+    <div id="libraryList"></div>
+  </section>
+</main>
+
+<footer>Prompt Studio — 모든 데이터는 이 브라우저에만 저장됩니다.</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 탭 전환 ---------- */
+  var navButtons = Array.prototype.slice.call(document.querySelectorAll('.nav-btn'));
+  var tabs = {
+    project: document.getElementById('tab-project'),
+    idea: document.getElementById('tab-idea'),
+    feature: document.getElementById('tab-feature'),
+    library: document.getElementById('tab-library')
+  };
+
+  navButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      navButtons.forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      Object.keys(tabs).forEach(function (key) { tabs[key].classList.remove('active'); });
+      tabs[btn.dataset.tab].classList.add('active');
+      if (btn.dataset.tab === 'library') renderLibrary();
+    });
+  });
+
+  /* ---------- 공용: 클립보드 / 버튼 피드백 ---------- */
+  function copyToClipboard(text) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  function flashButton(btn, tempLabel) {
+    var original = btn.textContent;
+    btn.textContent = tempLabel;
+    setTimeout(function () { btn.textContent = original; }, 1200);
+  }
+
+  /* ---------- 라이브러리 (localStorage) ---------- */
+  var LIBRARY_KEY = 'promptStudio.library';
+
+  function getLibrary() {
+    try {
+      return JSON.parse(localStorage.getItem(LIBRARY_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setLibrary(items) {
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(items));
+  }
+
+  function addPrompt(title, content) {
+    var items = getLibrary();
+    var now = Date.now();
+    var entry = {
+      id: now + '-' + Math.random().toString(36).slice(2, 8),
+      title: (title || '').trim() || '(제목 없음)',
+      content: content,
+      favorite: false,
+      createdAt: now,
+      updatedAt: now
+    };
+    setLibrary([entry].concat(items));
+    return entry;
+  }
+
+  function updatePromptContent(id, content) {
+    var items = getLibrary().map(function (item) {
+      return item.id === id ? Object.assign({}, item, { content: content, updatedAt: Date.now() }) : item;
+    });
+    setLibrary(items);
+  }
+
+  function toggleFavorite(id) {
+    var items = getLibrary().map(function (item) {
+      return item.id === id ? Object.assign({}, item, { favorite: !item.favorite }) : item;
+    });
+    setLibrary(items);
+  }
+
+  function deletePrompt(id) {
+    setLibrary(getLibrary().filter(function (item) { return item.id !== id; }));
+  }
+
+  function sortForDisplay(items) {
+    return items.slice().sort(function (a, b) {
+      if (a.favorite !== b.favorite) return a.favorite ? -1 : 1;
+      return b.updatedAt - a.updatedAt;
+    });
+  }
+
+  function formatDate(timestamp) {
+    return new Date(timestamp).toLocaleString();
+  }
+
+  var libraryList = document.getElementById('libraryList');
+  var libraryEmpty = document.getElementById('libraryEmpty');
+
+  function renderLibrary() {
+    var items = sortForDisplay(getLibrary());
+    libraryList.innerHTML = '';
+
+    if (items.length === 0) {
+      libraryEmpty.hidden = false;
+      return;
+    }
+    libraryEmpty.hidden = true;
+
+    items.forEach(function (item) {
+      libraryList.appendChild(renderLibraryItem(item));
+    });
+  }
+
+  function renderLibraryItem(item) {
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    var header = document.createElement('div');
+    header.className = 'item-header';
+
+    var star = document.createElement('button');
+    star.className = 'star-btn' + (item.favorite ? ' active' : '');
+    star.textContent = item.favorite ? '★' : '☆';
+    star.title = '즐겨찾기';
+    star.addEventListener('click', function () {
+      toggleFavorite(item.id);
+      renderLibrary();
+    });
+
+    var titleEl = document.createElement('div');
+    titleEl.className = 'item-title';
+    titleEl.textContent = item.title;
+    titleEl.title = item.title;
+
+    var dateEl = document.createElement('div');
+    dateEl.className = 'item-date';
+    dateEl.textContent = formatDate(item.updatedAt);
+
+    header.appendChild(star);
+    header.appendChild(titleEl);
+    header.appendChild(dateEl);
+
+    var textarea = document.createElement('textarea');
+    textarea.className = 'item-content';
+    textarea.rows = 6;
+    textarea.value = item.content;
+
+    var actions = document.createElement('div');
+    actions.className = 'item-actions';
+
+    var saveBtn = document.createElement('button');
+    saveBtn.className = 'secondary-btn';
+    saveBtn.textContent = '수정 저장';
+    saveBtn.addEventListener('click', function () {
+      updatePromptContent(item.id, textarea.value);
+      renderLibrary();
+    });
+
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'secondary-btn';
+    copyBtn.textContent = '복사';
+    copyBtn.addEventListener('click', function () {
+      copyToClipboard(textarea.value).then(function () { flashButton(copyBtn, '복사됨'); });
+    });
+
+    var deleteBtn = document.createElement('button');
+    deleteBtn.className = 'secondary-btn danger-btn';
+    deleteBtn.textContent = '삭제';
+    deleteBtn.addEventListener('click', function () {
+      deletePrompt(item.id);
+      renderLibrary();
+    });
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(copyBtn);
+    actions.appendChild(deleteBtn);
+
+    card.appendChild(header);
+    card.appendChild(textarea);
+    card.appendChild(actions);
+    return card;
+  }
+
+  /* ---------- 1. 프로젝트 시작 프롬프트 ---------- */
+  function buildProjectStartPrompt(data) {
+    return '# 프로젝트명\n' + data.projectName + '\n\n' +
+      '# 프로젝트 목표\n' + data.projectPurpose + '\n\n' +
+      '# 프로젝트 정보\n' +
+      '- 플랫폼: ' + data.platform + '\n' +
+      '- 개발 목적: ' + data.devPurpose + '\n' +
+      '- 기술스택: ' + data.techStack + '\n' +
+      '- 디자인 스타일: ' + data.designStyle + '\n' +
+      '- 개발 성향: ' + data.devTendency + '\n\n' +
+      '# 현재 작업 범위\n' +
+      '지금은 프로젝트의 첫 번째 MVP만 개발한다. 전체 기능을 한 번에 만들지 않는다.\n\n' +
+      '# 개발 원칙\n' +
+      '- MVP 우선 개발: 핵심 기능 하나가 정상 동작하는 것을 최우선으로 한다.\n' +
+      '- 기존 구조 분석: 코드를 작성하기 전에 기존 프로젝트 구조와 파일을 먼저 파악한다.\n' +
+      '- 영향 범위 확인: 변경 사항이 다른 파일/기능에 미치는 영향을 확인한다.\n' +
+      '- 더 좋은 구조 제안: 더 나은 구조나 방법이 있다면 먼저 제안한다.\n' +
+      '- 사용자 승인 후 구현: 제안에 대해 사용자 승인을 받은 뒤에 실제 구현을 시작한다.\n' +
+      '- 테스트 수행: 구현 후에는 정상 동작 여부를 테스트한다.\n' +
+      '- 변경 내용 요약: 작업이 끝나면 무엇을 바꿨는지 간단히 요약한다.\n\n' +
+      '# 요청\n' +
+      '위 정보를 바탕으로 이 프로젝트의 첫 번째 MVP를 시작하고 싶습니다. 먼저 구현 계획과 필요한 파일, 영향받는 파일을 설명해 주세요. 제 승인 후에 개발을 시작해 주세요.';
+  }
+
+  var projectGenerateBtn = document.getElementById('projectGenerateBtn');
+  var projectResultCard = document.getElementById('projectResultCard');
+  var projectResultText = document.getElementById('projectResultText');
+  var projectCopyBtn = document.getElementById('projectCopyBtn');
+  var projectSaveBtn = document.getElementById('projectSaveBtn');
+
+  projectGenerateBtn.addEventListener('click', function () {
+    var data = {
+      projectName: document.getElementById('projectName').value,
+      projectPurpose: document.getElementById('projectPurpose').value,
+      platform: document.getElementById('platform').value,
+      devPurpose: document.getElementById('devPurpose').value,
+      techStack: document.getElementById('techStack').value,
+      designStyle: document.getElementById('designStyle').value,
+      devTendency: document.getElementById('devTendency').value
+    };
+    projectResultText.textContent = buildProjectStartPrompt(data);
+    projectResultCard.hidden = false;
+    projectResultCard.classList.add('reveal');
+    projectResultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  projectCopyBtn.addEventListener('click', function () {
+    copyToClipboard(projectResultText.textContent).then(function () { flashButton(projectCopyBtn, '복사됨'); });
+  });
+
+  projectSaveBtn.addEventListener('click', function () {
+    var title = document.getElementById('projectName').value || '프로젝트 시작 프롬프트';
+    addPrompt(title, projectResultText.textContent);
+    flashButton(projectSaveBtn, '저장됨');
+  });
+
+  /* ---------- 2. 아이디어로 시작하기 ---------- */
+  var API_KEY_STORAGE = 'promptStudio.apiKey';
+  var CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
+  var CLAUDE_MODEL = 'claude-opus-4-8';
+
+  var CLARIFY_SYSTEM_PROMPT = [
+    '당신은 바이브 코딩 프로젝트 기획을 도와주는 어시스턴트입니다.',
+    '사용자가 짧은 한 줄 아이디어를 주면, 프로젝트를 구체화하는 데 꼭 필요한',
+    '역질문을 한국어로 만들어 주세요.',
+    '',
+    '- 질문은 3개에서 6개 사이로 만드세요.',
+    '- 대상 사용자, 플랫폼, 로그인 필요 여부, 데이터 저장 방식, 실시간 동기화 필요 여부,',
+    '  AI 기능 필요 여부 등 프로젝트 기획에 실제로 영향을 주는 질문만 만드세요.',
+    '- 각 질문은 한 문장으로, 사용자가 바로 답할 수 있도록 구체적으로 작성하세요.',
+    '- 질문 문장 안에 "(예: ...)" 같은 괄호 예시를 절대 덧붙이지 마세요. 질문 자체만 간결하게 작성하세요.',
+    '- 사용자의 아이디어 문장에 이미 답이 드러나 있는 질문이 있다면, suggestedAnswer에 그 답을',
+    '  사용자가 직접 답한 것처럼 간결하게 적으세요. 아이디어에서 추론할 수 없는 항목은',
+    '  suggestedAnswer를 빈 문자열("")로 두세요. 근거 없이 답을 지어내지 마세요.'
+  ].join('\n');
+
+  var QUESTIONS_SCHEMA = {
+    type: 'object',
+    properties: {
+      questions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: '괄호 예시 없이 간결한 질문 한 문장' },
+            suggestedAnswer: { type: 'string', description: '아이디어에 이미 답이 드러나 있으면 그 답, 아니면 빈 문자열' }
+          },
+          required: ['question', 'suggestedAnswer'],
+          additionalProperties: false
+        },
+        description: '아이디어를 구체화하기 위한 역질문 목록 (3~6개)'
+      }
+    },
+    required: ['questions'],
+    additionalProperties: false
+  };
+
+  var SUMMARY_SYSTEM_PROMPT = [
+    '당신은 사용자의 아이디어와 질문-답변을 자연스러운 한국어 문단으로',
+    '정리하는 어시스턴트입니다.',
+    '',
+    '- 질문과 답변을 그대로 나열하지 말고, 실제 사람이 자기 프로젝트를 설명하듯',
+    '  자연스럽게 이어지는 문장으로 작성하세요.',
+    '- 답변이 비어 있거나 의미 없는 항목은 무시하세요.',
+    '- 근거 없는 내용을 지어내지 말고, 주어진 아이디어와 답변에 있는 정보만 사용하세요.',
+    '- 미사여구나 군더더기 없이 핵심만 담아 3~6문장 정도로 작성하세요.',
+    '- 결과는 문단 텍스트만 출력하세요. 제목이나 목록 형식을 쓰지 마세요.'
+  ].join('\n');
+
+  async function callClaude(apiKey, body) {
+    var res = await fetch(CLAUDE_API_URL, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify(body)
+    });
+    var data = await res.json().catch(function () { return {}; });
+    if (!res.ok) {
+      var msg = (data && data.error && data.error.message) || ('요청이 실패했습니다 (' + res.status + ')');
+      throw new Error(msg);
+    }
+    return data;
+  }
+
+  async function fetchClarifyingQuestions(apiKey, idea) {
+    var data = await callClaude(apiKey, {
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      system: CLARIFY_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: idea }],
+      output_config: { format: { type: 'json_schema', schema: QUESTIONS_SCHEMA } }
+    });
+    var textBlock = (data.content || []).filter(function (b) { return b.type === 'text'; })[0];
+    if (!textBlock) return [];
+    var parsed = JSON.parse(textBlock.text);
+    return parsed.questions || [];
+  }
+
+  async function synthesizeProjectSummary(apiKey, idea, qa) {
+    var answered = qa.filter(function (item) { return item.answer.trim().length > 0; });
+    var qaText = answered.map(function (item) { return item.question + ' ' + item.answer; }).join('\n');
+    var data = await callClaude(apiKey, {
+      model: CLAUDE_MODEL,
+      max_tokens: 512,
+      system: SUMMARY_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: '아이디어: ' + idea + '\n\n질문과 답변:\n' + (qaText || '(답변 없음)') }]
+    });
+    var textBlock = (data.content || []).filter(function (b) { return b.type === 'text'; })[0];
+    return textBlock ? textBlock.text.trim() : idea;
+  }
+
+  function buildIdeaStartPrompt(idea, summary) {
+    return '# 아이디어\n' + idea + '\n\n' +
+      '# 프로젝트 설명\n' + summary + '\n\n' +
+      '# 현재 작업 범위\n' +
+      '지금은 프로젝트의 첫 번째 MVP만 개발한다. 전체 기능을 한 번에 만들지 않는다.\n\n' +
+      '# 개발 원칙\n' +
+      '- MVP 우선 개발: 핵심 기능 하나가 정상 동작하는 것을 최우선으로 한다.\n' +
+      '- 기존 구조 분석: 코드를 작성하기 전에 기존 프로젝트 구조와 파일을 먼저 파악한다.\n' +
+      '- 영향 범위 확인: 변경 사항이 다른 파일/기능에 미치는 영향을 확인한다.\n' +
+      '- 더 좋은 구조 제안: 더 나은 구조나 방법이 있다면 먼저 제안한다.\n' +
+      '- 사용자 승인 후 구현: 제안에 대해 사용자 승인을 받은 뒤에 실제 구현을 시작한다.\n' +
+      '- 테스트 수행: 구현 후에는 정상 동작 여부를 테스트한다.\n' +
+      '- 변경 내용 요약: 작업이 끝나면 무엇을 바꿨는지 간단히 요약한다.\n\n' +
+      '# 요청\n' +
+      '위 내용을 바탕으로 이 프로젝트의 첫 번째 MVP를 시작하고 싶습니다. 먼저 구현 계획과 필요한 파일, 영향받는 파일을 설명해 주세요. 제 승인 후에 개발을 시작해 주세요.';
+  }
+
+  var apiKeyInput = document.getElementById('apiKey');
+  var saveKeyBtn = document.getElementById('saveKeyBtn');
+  var keyStatus = document.getElementById('keyStatus');
+
+  function refreshKeyStatus() {
+    var hasKey = Boolean(localStorage.getItem(API_KEY_STORAGE));
+    keyStatus.textContent = hasKey ? '키가 저장되어 있습니다.' : '키가 저장되어 있지 않습니다.';
+    keyStatus.classList.toggle('ok', hasKey);
+  }
+
+  saveKeyBtn.addEventListener('click', function () {
+    var value = apiKeyInput.value.trim();
+    if (value) {
+      localStorage.setItem(API_KEY_STORAGE, value);
+    }
+    apiKeyInput.value = '';
+    refreshKeyStatus();
+  });
+
+  refreshKeyStatus();
+
+  var ideaInput = document.getElementById('idea');
+  var askBtn = document.getElementById('askBtn');
+  var ideaError = document.getElementById('ideaError');
+  var questionsCard = document.getElementById('questionsCard');
+  var questionsList = document.getElementById('questionsList');
+  var ideaGenerateBtn = document.getElementById('ideaGenerateBtn');
+  var promptError = document.getElementById('promptError');
+  var ideaResultCard = document.getElementById('ideaResultCard');
+  var ideaResultText = document.getElementById('ideaResultText');
+  var ideaCopyBtn = document.getElementById('ideaCopyBtn');
+  var ideaSaveBtn = document.getElementById('ideaSaveBtn');
+
+  var currentIdea = '';
+
+  askBtn.addEventListener('click', async function () {
+    var idea = ideaInput.value.trim();
+    ideaError.hidden = true;
+
+    if (!idea) {
+      ideaError.textContent = '아이디어를 한 줄 입력해 주세요.';
+      ideaError.hidden = false;
+      return;
+    }
+
+    var apiKey = localStorage.getItem(API_KEY_STORAGE);
+    if (!apiKey) {
+      ideaError.textContent = 'API 키가 저장되어 있지 않습니다. 먼저 API 키를 입력하고 저장해 주세요.';
+      ideaError.hidden = false;
+      return;
+    }
+
+    currentIdea = idea;
+    askBtn.disabled = true;
+    askBtn.textContent = '질문 생성 중...';
+
+    try {
+      var questions = await fetchClarifyingQuestions(apiKey, idea);
+      questionsList.innerHTML = '';
+      questions.forEach(function (q) {
+        var item = document.createElement('div');
+        item.className = 'question-item';
+
+        var p = document.createElement('p');
+        p.textContent = q.question;
+
+        var textarea = document.createElement('textarea');
+        textarea.rows = 2;
+        textarea.placeholder = '답변을 입력하세요';
+        textarea.value = q.suggestedAnswer || '';
+
+        item.appendChild(p);
+        item.appendChild(textarea);
+        questionsList.appendChild(item);
+      });
+
+      questionsCard.hidden = false;
+      questionsCard.classList.add('reveal');
+      questionsCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      ideaError.textContent = err.message || String(err);
+      ideaError.hidden = false;
+    } finally {
+      askBtn.disabled = false;
+      askBtn.textContent = '질문받기';
+    }
+  });
+
+  ideaGenerateBtn.addEventListener('click', async function () {
+    promptError.hidden = true;
+
+    var apiKey = localStorage.getItem(API_KEY_STORAGE);
+    if (!apiKey) {
+      promptError.textContent = 'API 키가 저장되어 있지 않습니다. 먼저 API 키를 입력하고 저장해 주세요.';
+      promptError.hidden = false;
+      return;
+    }
+
+    var items = questionsList.querySelectorAll('.question-item');
+    var qa = Array.prototype.map.call(items, function (item) {
+      return {
+        question: item.querySelector('p').textContent,
+        answer: item.querySelector('textarea').value
+      };
+    });
+
+    ideaGenerateBtn.disabled = true;
+    ideaGenerateBtn.textContent = '프롬프트 생성 중...';
+
+    try {
+      var summary = await synthesizeProjectSummary(apiKey, currentIdea, qa);
+      var prompt = buildIdeaStartPrompt(currentIdea, summary);
+      ideaResultText.textContent = prompt;
+      ideaResultCard.hidden = false;
+      ideaResultCard.classList.add('reveal');
+      ideaResultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      promptError.textContent = err.message || String(err);
+      promptError.hidden = false;
+    } finally {
+      ideaGenerateBtn.disabled = false;
+      ideaGenerateBtn.textContent = '프롬프트 생성';
+    }
+  });
+
+  ideaCopyBtn.addEventListener('click', function () {
+    copyToClipboard(ideaResultText.textContent).then(function () { flashButton(ideaCopyBtn, '복사됨'); });
+  });
+
+  ideaSaveBtn.addEventListener('click', function () {
+    addPrompt(currentIdea, ideaResultText.textContent);
+    flashButton(ideaSaveBtn, '저장됨');
+  });
+
+  /* ---------- 3. 기능 구현 프롬프트 ---------- */
+  var FEATURE_CATEGORIES = [
+    '로그인', '회원가입', 'DB 설계', '캘린더', '가계부', 'OCR', 'AI 분석', 'UI 생성', 'API 개발', '리팩토링', '테스트'
+  ];
+
+  var CATEGORY_CHECKLISTS = {
+    '로그인': [
+      '인증 방식(이메일/소셜/OTP 등)을 명확히 한다.',
+      '세션·토큰 만료 및 갱신 정책을 정한다.',
+      '로그인 실패 시 에러 메시지와 잠금 정책을 고려한다.'
+    ],
+    '회원가입': [
+      '필수 입력 항목과 검증 규칙을 정한다.',
+      '중복 가입 및 이메일/전화번호 인증 처리 방식을 정한다.',
+      '가입 직후 온보딩 흐름을 고려한다.'
+    ],
+    'DB 설계': [
+      '핵심 엔티티와 관계를 먼저 정의한다.',
+      '주요 조회 패턴에 맞는 인덱스를 고려한다.',
+      '마이그레이션 전략을 고려한다.'
+    ],
+    '캘린더': [
+      '반복 일정 처리 방식을 정한다.',
+      '타임존 처리 방식을 정한다.',
+      '알림·리마인더 필요 여부를 정한다.'
+    ],
+    '가계부': [
+      '수입·지출 카테고리 구조를 정한다.',
+      '통계·리포트가 필요한 범위를 정한다.',
+      '데이터 입력 방식(수동/자동 연동)을 정한다.'
+    ],
+    'OCR': [
+      '입력 이미지 소스(카메라/업로드)를 정한다.',
+      '인식 정확도가 낮을 때의 처리 방식을 정한다.',
+      '이미지에 개인정보가 포함되는지 확인한다.'
+    ],
+    'AI 분석': [
+      '어떤 데이터를 분석 대상으로 할지 정한다.',
+      'AI 응답 실패·지연 시 대응(폴백)을 정한다.',
+      'API 호출 비용과 빈도를 고려한다.'
+    ],
+    'UI 생성': [
+      '디자인 톤앤매너(색상/스타일)를 정한다.',
+      '반응형 대응이 필요한지 정한다.',
+      '기존 컴포넌트와의 재사용 범위를 고려한다.'
+    ],
+    'API 개발': [
+      '엔드포인트와 요청·응답 스키마를 정한다.',
+      '인증·권한 처리 방식을 정한다.',
+      '에러 응답 형식을 프로젝트 전체와 통일한다.'
+    ],
+    '리팩토링': [
+      '현재 구조의 문제점을 먼저 정리한다.',
+      '동작은 바꾸지 않고 구조만 개선한다.',
+      '테스트로 회귀 여부를 확인한다.'
+    ],
+    '테스트': [
+      '테스트 대상 범위(단위/통합)를 정한다.',
+      '엣지 케이스 목록을 정한다.',
+      '기존 테스트와 충돌하지 않는지 확인한다.'
+    ]
+  };
+
+  function buildFeaturePrompt(category, description) {
+    var checklist = CATEGORY_CHECKLISTS[category] || [];
+    var checklistText = checklist.map(function (item) { return '- ' + item; }).join('\n');
+
+    return '# 기능 카테고리\n' + category + '\n\n' +
+      '# 구현하고 싶은 내용\n' + description + '\n\n' +
+      '# 이 카테고리에서 특히 신경 써야 할 점\n' + checklistText + '\n\n' +
+      '# 현재 작업 범위\n' +
+      '지금은 이 기능 하나만 구현한다. 관련 없는 다른 기능은 건드리지 않는다.\n\n' +
+      '# 개발 원칙\n' +
+      '- 기존 구조 분석: 코드를 작성하기 전에 기존 프로젝트 구조와 관련 파일을 먼저 파악한다.\n' +
+      '- 영향 범위 확인: 이 기능이 다른 파일/기능에 미치는 영향을 확인한다.\n' +
+      '- 더 좋은 구조 제안: 더 나은 구조나 방법이 있다면 먼저 제안한다.\n' +
+      '- 사용자 승인 후 구현: 제안에 대해 사용자 승인을 받은 뒤에 실제 구현을 시작한다.\n' +
+      '- 테스트 수행: 구현 후에는 정상 동작 여부를 테스트한다.\n' +
+      '- 변경 내용 요약: 작업이 끝나면 무엇을 바꿨는지 간단히 요약한다.\n\n' +
+      '# 요청\n' +
+      '위 내용을 바탕으로 이 기능을 구현하고 싶습니다. 먼저 구현 계획과 필요한 파일, 영향받는 파일을 설명해 주세요. 제 승인 후에 개발을 시작해 주세요.';
+  }
+
+  var categoryGrid = document.getElementById('categoryGrid');
+  var categoryError = document.getElementById('categoryError');
+  var descriptionInput = document.getElementById('description');
+  var descriptionError = document.getElementById('descriptionError');
+  var featureGenerateBtn = document.getElementById('featureGenerateBtn');
+  var featureResultCard = document.getElementById('featureResultCard');
+  var featureResultText = document.getElementById('featureResultText');
+  var featureCopyBtn = document.getElementById('featureCopyBtn');
+  var featureSaveBtn = document.getElementById('featureSaveBtn');
+
+  var selectedCategory = '';
+
+  FEATURE_CATEGORIES.forEach(function (category) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'category-btn';
+    btn.textContent = category;
+    btn.addEventListener('click', function () {
+      Array.prototype.forEach.call(categoryGrid.children, function (b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      selectedCategory = category;
+      categoryError.hidden = true;
+    });
+    categoryGrid.appendChild(btn);
+  });
+
+  featureGenerateBtn.addEventListener('click', function () {
+    categoryError.hidden = true;
+    descriptionError.hidden = true;
+
+    if (!selectedCategory) {
+      categoryError.hidden = false;
+      return;
+    }
+
+    var description = descriptionInput.value.trim();
+    if (!description) {
+      descriptionError.textContent = '구현하고 싶은 내용을 입력해 주세요.';
+      descriptionError.hidden = false;
+      return;
+    }
+
+    featureResultText.textContent = buildFeaturePrompt(selectedCategory, description);
+    featureResultCard.hidden = false;
+    featureResultCard.classList.add('reveal');
+    featureResultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  featureCopyBtn.addEventListener('click', function () {
+    copyToClipboard(featureResultText.textContent).then(function () { flashButton(featureCopyBtn, '복사됨'); });
+  });
+
+  featureSaveBtn.addEventListener('click', function () {
+    var title = selectedCategory ? (selectedCategory + ' 기능 구현') : '기능 구현 프롬프트';
+    addPrompt(title, featureResultText.textContent);
+    flashButton(featureSaveBtn, '저장됨');
+  });
+
+  /* ---------- 초기 렌더 ---------- */
+  renderLibrary();
+})();
+</script>
+</body>
+</html>
